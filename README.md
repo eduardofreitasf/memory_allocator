@@ -34,7 +34,13 @@ Each block of memory managed by the allocator includes three main components:
 | Header | Payload (user data) | Footer |
 ```
 
-![Block Layout Diagram](imgs/block-diagram.png)
+![Memory Block Layout Diagram](imgs/mem-block.png)
+
+When a block is free, it has the following structure:
+
+
+![Free Memory Block Layout Diagram](imgs/free-block.png)
+
 
 ---
 
@@ -43,7 +49,7 @@ Each block of memory managed by the allocator includes three main components:
 The allocator uses a linked list of free blocks to manage available memory. Every time a block is freed, the allocator attempts to coalesce it with its neighboring blocks if they are also free, reducing fragmentation.
 
 
-![Free List Diagram](imgs/free_list-diagram.png)
+![Free List Diagram](imgs/free-list.png)
 
 ---
 

@@ -1,6 +1,8 @@
 #ifndef MEM_ALLOC_H
 #define MEM_ALLOC_H
 
+#define _GNU_SOURCE
+
 /* for size_t */
 #include <stddef.h>
 
