@@ -1,33 +1,83 @@
+/**
+ * @file mem_alloc.c
+ * @author Eduardo Freitas Fernandes (ef05238@gmail.com)
+ * @brief Implementation of a memory allocator
+ * 
+ */
 
+ 
 #include "mem_alloc.h"
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 
 
+/**
+ * @brief Size of a memory address
+ *
+ */
 #define PTR_SIZE (sizeof(void *))
+
+/**
+ * @brief Size of a header/footer
+ * 
+ */
 #define WORD_SIZE (sizeof(size_t))
 
+/**
+ * @brief Minimum size for a memory block
+ * 
+ */
 #define MIN_SIZE (4 * WORD_SIZE)
+
+/**
+ * @brief Minimum size for payload
+ * 
+ */
 #define MIN_PAYLOAD (2 * WORD_SIZE)
 
 
+/**
+ * @brief Address of the start of the heap
+ * 
+ */
 static void * heap_start = NULL;
+
+/**
+ * @brief Address of the end of the heap
+ * 
+ */
 static void * heap_end = NULL;
+
+/**
+ * @brief Address of the head of the free list
+ * 
+ */
 static void * free_list = NULL;
 
 
-/**
- * ===========================================
- *                  UTILS
- * ===========================================
- */
 
+/**
+ * @brief Initializes the heap_start and heap_end variables
+ * 
+ */
 static void init_heap(void) {
     heap_start = sbrk(0);
     heap_end = heap_start;
 }
 
+
+/**
+ * @brief Adjusts a requested memory block size to meet allocator requirements.
+ * 
+ * This function ensures the size adheres to three constraints:
+ *   1. Meets minimum payload requirements (MIN_PAYLOAD)
+ *   2. Includes space for header/footer metadata (2 * WORD_SIZE)
+ *   3. Rounds up to maintain 8-byte alignment
+ * 
+ * @param size Requested payload size in bytes
+ * @return Total adjusted block size
+ */
 static size_t adjust_size(size_t size) {
     if (size < MIN_PAYLOAD) {
         size = MIN_PAYLOAD;
@@ -37,12 +87,11 @@ static size_t adjust_size(size_t size) {
 
 
 
-/*
- * ===========================================
- *             EXPLICIT FREE LIST
- * ===========================================
+/**
+ * @brief Adds a free memory block to the free list
+ * 
+ * @param ptr address of the memory block
  */
-
 static void free_list_add(void * ptr) {
 
     // empty free list
@@ -74,6 +123,12 @@ static void free_list_add(void * ptr) {
 
 }
 
+
+/**
+ * @brief Removes a free memory block from the free list
+ * 
+ * @param ptr address of the memory block
+ */
 static void free_list_remove(void * ptr) {
 
     void * next = NULL, * previous = NULL;
@@ -99,6 +154,14 @@ static void free_list_remove(void * ptr) {
 
 }
 
+
+/**
+ * @brief Finds a free memory block using a Best Fit algorithm
+ * 
+ * @param size size of the memory block
+ * @return address of a memory block
+ * @retval NULL if no free block satisfies the size
+ */
 static void * find_free_block(size_t size) {
     if (free_list == NULL) {
         return NULL;
@@ -126,19 +189,18 @@ static void * find_free_block(size_t size) {
 
 
 
-/*
- * ===========================================
- *                COALESCING
- * ===========================================
- */
-
 /**
- * @brief 
+ * @brief Coalesces (merges) the current block with its right neighbor if free.
  * 
- * Assumes it is not the end of the heap
- * 
- * @param ptr 
- * @return void* 
+ * This function checks if the immediately adjacent block to the right is free, 
+ * and if so, merges both blocks into a single larger block. Updates all metadata
+ * (header/footer sizes) and maintains the free list consistency.
+ *
+ * @param ptr Pointer to the header of the current block to coalesce.
+ * @param[out] coalesce set to 1 if coalescing occurred, unchanged otherwise.
+ * @return Returns the original block pointer (now potentially larger if coalesced).
+ *
+ * @note Assumes the current block is not at the end of the heap.
  */
 static void * coalesce_right(void * ptr, char * coalesce) {
 
@@ -168,13 +230,19 @@ static void * coalesce_right(void * ptr, char * coalesce) {
     return ptr;
 }
 
+
 /**
- * @brief 
+ * @brief Coalesces (merges) the current block with its left neighbor if free.
  * 
- * Assumes it is not the heap start
- * 
- * @param ptr 
- * @return void* 
+ * Checks if the immediately adjacent block to the left is free, and if so,
+ * merges both blocks into a single larger block. Updates all metadata including
+ * header and footer sizes. The merged block will use the left block's address.
+ *
+ * @param ptr Pointer to the header of the current block to coalesce.
+ * @param[out] coalesce set to 1 if coalescing occurred, unchanged otherwise.
+ * @return Returns pointer to the merged block (either original or left neighbor).
+ *
+ * @note Assumes the current block is not at the start of the heap.
  */
 static void * coalesce_left(void * ptr, char * coalesce) {
 
@@ -200,13 +268,6 @@ static void * coalesce_left(void * ptr, char * coalesce) {
     return ptr;
 }
 
-
-
-/**
- * ===========================================
- *               API FUNCTIONS
- * ===========================================
- */
 
 
 void * mem_alloc(size_t size) {
@@ -347,9 +408,17 @@ void mem_free(void * ptr) {
 
 void * mem_resize(void * ptr, size_t size) {
 
+    if (size == 0 && ptr != NULL) {
+        mem_free(ptr);
+        return NULL;
+    }
+
+    // allocate new block
     void * block = mem_alloc(size);
-    if (block != NULL) {
+    if (block != NULL && ptr != NULL) {
+        // copy the contents to the new block
         memcpy(block, ptr, size);
+        // free the old one
         mem_free(ptr);
     }
 
@@ -359,8 +428,10 @@ void * mem_resize(void * ptr, size_t size) {
 
 void * mem_alloc_clear(size_t n, size_t size) {
 
+    // allocate a new block
     void * block = mem_alloc(n * size);
     if (block != NULL) {
+        // set the memory to zero
         memset(block, 0, n * size);
     }
 
@@ -368,6 +439,12 @@ void * mem_alloc_clear(size_t n, size_t size) {
 }
 
 
+
+/**
+ * @brief Shows the information of a memory block
+ * 
+ * @param ptr address of the memory block
+ */
 static void show_block(void * ptr) {
 
     size_t size = *(size_t *) ptr;
@@ -389,6 +466,11 @@ static void show_block(void * ptr) {
     printf("Footer: %ld\n", *(size_t *)(ptr + (size & ~1) - WORD_SIZE));
 }
 
+
+/**
+ * @brief Shows the content of the free list
+ * 
+ */
 static void show_free_list(void) {
     if (free_list == NULL) {
         return;
