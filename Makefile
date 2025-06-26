@@ -1,6 +1,6 @@
 # Compilation Flags
 CC = gcc
-CFLAGS = -Wall -Wextra -g -std=c99 # -fsanitize=address
+CFLAGS = -Wall -Wextra -g -std=c99 -fsanitize=address
 LDFLAGS = 
 
 # Files
