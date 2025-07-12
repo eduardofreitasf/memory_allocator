@@ -445,25 +445,33 @@ void * mem_alloc_clear(size_t n, size_t size) {
  * 
  * @param ptr address of the memory block
  */
-static void show_block(void * ptr) {
+static void show_block(void *ptr) {
+    size_t header = *(size_t *)ptr;
+    size_t block_size = header & ~1;
+    int is_allocated = header & 1;
+    
+    printf("\n========= Memory Block =========\n");
+    printf("| Address    : %p\n", ptr);
+    printf("| Status     : %s\n", is_allocated ? "Allocated" : "Free");
+    printf("| Block Size : %zu bytes\n", block_size);
+    printf("| Header     : %zu\n", header);
 
-    size_t size = *(size_t *) ptr;
+    if (!is_allocated) {
+        void *next = NULL;
+        void *prev = NULL;
 
-    printf("------------------------------\n");
-    printf("Address: %p\n", ptr);
-    printf("Status: %s\n", (size & 1) ? "Allocated" : "Free");
-    printf("Block size: %ld\n", size & ~1);
-    printf("Header: %ld\n", *(size_t *)ptr);
-    if ((size & 1) == 0) {
-        void * temp = NULL;
-        memcpy(&temp, ptr + WORD_SIZE, PTR_SIZE);
-        printf("Next: %p\n", temp);
-        memcpy(&temp, ptr + 2 * WORD_SIZE, PTR_SIZE);
-        printf("Previous: %p\n", temp);
+        memcpy(&next, ptr + WORD_SIZE, PTR_SIZE);
+        memcpy(&prev, ptr + 2 * WORD_SIZE, PTR_SIZE);
+
+        printf("| Next Free  : %p\n", next);
+        printf("| Prev Free  : %p\n", prev);
     } else {
-        printf("Payload: ...\n");
+        printf("| Payload    : (in use)\n");
     }
-    printf("Footer: %ld\n", *(size_t *)(ptr + (size & ~1) - WORD_SIZE));
+
+    size_t footer = *(size_t *)(ptr + block_size - WORD_SIZE);
+    printf("| Footer     : %zu\n", footer);
+    printf("================================\n");
 }
 
 
@@ -492,12 +500,14 @@ void show_heap(void) {
         return;
     }
 
-    printf("\n============ HEAP ============\n");
+    printf("\n============= HEAP =============\n");
     
-    printf("START: %p\n", heap_start);
-    printf("END: %p\n", heap_end);
-    printf("HEAP SIZE: %ld\n", (size_t) (heap_end - heap_start));
+    printf("| START : %p\n", heap_start);
+    printf("| END   : %p\n", heap_end);
+    printf("| SIZE  : %ld bytes\n", (size_t) (heap_end - heap_start));
     
+    printf("================================\n");
+
     void * temp = heap_start;
     size_t offset = 0;
     
@@ -506,8 +516,6 @@ void show_heap(void) {
         show_block(temp);
         temp += (offset & ~1);    
     }
-    
-    printf("==============================\n");
 
 }
 
