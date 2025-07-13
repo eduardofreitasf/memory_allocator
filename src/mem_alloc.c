@@ -10,6 +10,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <signal.h>
+#include <errno.h>
+#include <stdint.h>
 
 
 /**
@@ -292,13 +295,17 @@ void * mem_alloc(size_t size) {
         return NULL;
     }
 
-
-    // size cannot be higher than PTRDIFF_MAX
-    // consider RLIMIT_DATA, but first check if it's equal to RLIMIT_INFINITY
-    
-
     // adjust the size of the block
     size = adjust_size(size);
+
+    // size cannot be higher than PTRDIFF_MAX
+    if (size > PTRDIFF_MAX) {
+        return NULL;
+    }
+
+    
+    // consider RLIMIT_DATA, but first check if it's equal to RLIMIT_INFINITY
+    
 
     size_t remain_size = 0;
     unsigned char * free_block = find_free_block(size);
@@ -311,6 +318,7 @@ void * mem_alloc(size_t size) {
         if (free_block == (void *) -1) {
 
             // sbrk() failed
+            errno = ENOMEM;
 
             return NULL;
         }
@@ -354,9 +362,11 @@ void * mem_alloc(size_t size) {
 
 void mem_free(void * ptr) {
 
+    // invalid pointer, does not belong to the heap
     if (ptr <= heap_start || ptr >= heap_end) {
 
-        // signal INVALID POINTER
+        printf("mem_free(): invalid pointer\n");
+        raise(SIGABRT);
 
         return;
     }
@@ -366,10 +376,11 @@ void mem_free(void * ptr) {
     temp = temp - WORD_SIZE;
     size_t size = *(size_t *)temp;
 
-    // block is free
+    // block is free, double free
     if ((size & 1) == 0) {
 
-        // signal DOUBLE FREE
+        printf("mem_free(): double free detected\n");
+        raise(SIGABRT);
 
         return;
     }

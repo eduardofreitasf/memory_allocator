@@ -23,6 +23,7 @@
  * @return void* Pointer to the allocated memory block.
  * @retval NULL If allocation failed (out of memory or size was 0).
  * @note The allocated memory is not initialized and may contain garbage values.
+ * @note On error, the return valur is NULL and errno is set to ENOMEM
  * @warning The returned pointer must be freed with mem_free() when no longer needed.
  */
 void * mem_alloc(size_t size);
@@ -45,6 +46,7 @@ void mem_free(void * ptr);
  * @return void* Pointer to the resized memory block.
  * @retval NULL If allocation failed (out of memory), original block remains valid.
  * @note If ptr is NULL, behaves like mem_alloc(size).
+ * @note On error, the return valur is NULL and errno is set to ENOMEM
  * @warning The returned pointer may be different from the original ptr.
  * @warning The original pointer becomes invalid after successful resize.
  */
@@ -58,6 +60,7 @@ void * mem_resize(void * ptr, size_t size);
  * @return void* Pointer to the allocated memory block.
  * @retval NULL If allocation failed (out of memory or n/size was 0).
  * @note The allocated memory is initialized to zero.
+ * @note On error, the return valur is NULL and errno is set to ENOMEM
  * @warning The returned pointer must be freed with mem_free() when no longer needed.
  */
 void * mem_alloc_clear(size_t n, size_t size);
