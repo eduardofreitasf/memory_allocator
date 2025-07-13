@@ -68,6 +68,12 @@ $(BIN_DIR)/%: $(TST_DIR)/%.c $(OBJS)
 documentation:
 	@doxygen -q $(DOC_DIR)/Doxyfile
 
+# formates the code
+.PHONY: fmt
+fmt:
+	@-clang-format -verbose -i $(SRC_DIR)/* $(TST_DIR)/*.c
+	@shfmt -w -i 2 -l -ci .
+
 
 .PHONY: clean
 clean:
