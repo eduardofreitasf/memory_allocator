@@ -2,7 +2,7 @@
 
 A Memory Allocator implemented in pure C. This project is a reimplementation of `malloc()`, `free()`, `realloc()` and `calloc()` functions, designed to deepen understanding of how dynamic memory management works under the hood.
 
-![Memory Layout Diagram](imgs/mem_alloc-diagram.png)
+![Memory Layout Diagram](imgs/memory-layout.png)
 
 > This project does **not** use any system libraries like `malloc()` or `free()` internally. All memory management is handled **manually**.
 
