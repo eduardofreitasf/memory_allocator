@@ -2,7 +2,7 @@
  * @file mem_alloc.c
  * @author Eduardo Freitas Fernandes (ef05238@gmail.com)
  * @brief Implementation of a memory allocator
- * 
+ * @version 1.0.0
  */
 
  

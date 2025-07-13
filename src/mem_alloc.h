@@ -2,6 +2,7 @@
  * @file mem_alloc.h
  * @author Eduardo Freitas Fernandes (ef05238@gmail.com)
  * @brief Custom memory allocation interface replicating standard library functions.
+ * @version 1.0.0
  * 
  * This header provides a custom implementation of memory management functions similar to
  * malloc, free, realloc, and calloc from the standard library.
