@@ -5,15 +5,13 @@
  * @version 1.0.0
  */
 
- 
 #include "mem_alloc.h"
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <signal.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdint.h>
-
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 /**
  * @brief Size of a memory address
@@ -23,61 +21,57 @@
 
 /**
  * @brief Size of a header/footer
- * 
+ *
  */
 #define WORD_SIZE (sizeof(size_t))
 
 /**
  * @brief Minimum size for a memory block
- * 
+ *
  */
 #define MIN_SIZE (4 * WORD_SIZE)
 
 /**
  * @brief Minimum size for payload
- * 
+ *
  */
 #define MIN_PAYLOAD (2 * WORD_SIZE)
 
-
 /**
  * @brief Address of the start of the heap
- * 
+ *
  */
-static void * heap_start = NULL;
+static void *heap_start = NULL;
 
 /**
  * @brief Address of the end of the heap
- * 
+ *
  */
-static void * heap_end = NULL;
+static void *heap_end = NULL;
 
 /**
  * @brief Address of the head of the free list
- * 
+ *
  */
-static void * free_list = NULL;
-
-
+static void *free_list = NULL;
 
 /**
  * @brief Initializes the heap_start and heap_end variables
- * 
+ *
  */
 static void init_heap(void) {
     heap_start = sbrk(0);
     heap_end = heap_start;
 }
 
-
 /**
  * @brief Adjusts a requested memory block size to meet allocator requirements.
- * 
+ *
  * This function ensures the size adheres to three constraints:
  *   1. Meets minimum payload requirements (MIN_PAYLOAD)
  *   2. Includes space for header/footer metadata (2 * WORD_SIZE)
  *   3. Rounds up to maintain 8-byte alignment
- * 
+ *
  * @param size Requested payload size in bytes
  * @return Total adjusted block size
  */
@@ -89,16 +83,14 @@ static size_t adjust_size(size_t size) {
     return 2 * WORD_SIZE + ((size + temp) & ~temp);
 }
 
-
-
 /**
  * @brief Adds a free memory block to the free list
- * 
+ *
  * @param ptr address of the memory block
  */
-static void free_list_add(void * ptr) {
-    unsigned char * temp = (unsigned char *) ptr;
-    unsigned char * fl_head = (unsigned char *) free_list;
+static void free_list_add(void *ptr) {
+    unsigned char *temp = (unsigned char *)ptr;
+    unsigned char *fl_head = (unsigned char *)free_list;
 
     // empty free list
     if (free_list == NULL) {
@@ -114,7 +106,7 @@ static void free_list_add(void * ptr) {
         memcpy(temp + 2 * WORD_SIZE, fl_head + 2 * WORD_SIZE, PTR_SIZE);
 
         // get the last element on the list
-        unsigned char * last = NULL;
+        unsigned char *last = NULL;
         memcpy(&last, fl_head + 2 * WORD_SIZE, PTR_SIZE);
 
         // update the next pointer on the last element
@@ -126,19 +118,17 @@ static void free_list_add(void * ptr) {
         // update the head of the list
         free_list = ptr;
     }
-
 }
-
 
 /**
  * @brief Removes a free memory block from the free list
- * 
+ *
  * @param ptr address of the memory block
  */
-static void free_list_remove(void * ptr) {
-    unsigned char * temp = (unsigned char *) ptr;
+static void free_list_remove(void *ptr) {
+    unsigned char *temp = (unsigned char *)ptr;
 
-    unsigned char * next = NULL, * previous = NULL;
+    unsigned char *next = NULL, *previous = NULL;
     // get the next block
     memcpy(&next, temp + WORD_SIZE, PTR_SIZE);
     // get the previous block
@@ -158,25 +148,23 @@ static void free_list_remove(void * ptr) {
         // update the previous pointer on the next block
         memcpy(next + 2 * WORD_SIZE, &previous, PTR_SIZE);
     }
-
 }
-
 
 /**
  * @brief Finds a free memory block using a Best Fit algorithm
- * 
+ *
  * @param size size of the memory block
  * @return address of a memory block
  * @retval NULL if no free block satisfies the size
  */
-static void * find_free_block(size_t size) {
+static void *find_free_block(size_t size) {
     if (free_list == NULL) {
         return NULL;
     }
 
-    unsigned char * iterator = free_list;
-    void * start = free_list;
-    void * best_fit = NULL;
+    unsigned char *iterator = free_list;
+    void *start = free_list;
+    void *best_fit = NULL;
 
     do {
         // block has a valid size
@@ -186,7 +174,7 @@ static void * find_free_block(size_t size) {
                 best_fit = iterator;
             }
         }
-    
+
         // go to the next free block
         memcpy(&iterator, iterator + WORD_SIZE, sizeof(void *));
     } while (iterator != start);
@@ -194,27 +182,26 @@ static void * find_free_block(size_t size) {
     return best_fit;
 }
 
-
-
 /**
  * @brief Coalesces (merges) the current block with its right neighbor if free.
- * 
- * This function checks if the immediately adjacent block to the right is free, 
- * and if so, merges both blocks into a single larger block. Updates all metadata
- * (header/footer sizes) and maintains the free list consistency.
+ *
+ * This function checks if the immediately adjacent block to the right is free,
+ * and if so, merges both blocks into a single larger block. Updates all
+ * metadata (header/footer sizes) and maintains the free list consistency.
  *
  * @param ptr Pointer to the header of the current block to coalesce.
  * @param[out] coalesce set to 1 if coalescing occurred, unchanged otherwise.
- * @return Returns the original block pointer (now potentially larger if coalesced).
+ * @return Returns the original block pointer (now potentially larger if
+ * coalesced).
  *
  * @note Assumes the current block is not at the end of the heap.
  */
-static void * coalesce_right(void * ptr, char * coalesce) {
-    unsigned char * temp = (unsigned char *) ptr;
+static void *coalesce_right(void *ptr, char *coalesce) {
+    unsigned char *temp = (unsigned char *)ptr;
 
     // get the block on the right
-    unsigned char * next = temp + *(size_t *) ptr;
-    size_t next_size = *(size_t *) next;
+    unsigned char *next = temp + *(size_t *)ptr;
+    size_t next_size = *(size_t *)next;
 
     // check if the right is free
     if ((next_size & 1) == 0) {
@@ -239,26 +226,26 @@ static void * coalesce_right(void * ptr, char * coalesce) {
     return ptr;
 }
 
-
 /**
  * @brief Coalesces (merges) the current block with its left neighbor if free.
- * 
+ *
  * Checks if the immediately adjacent block to the left is free, and if so,
  * merges both blocks into a single larger block. Updates all metadata including
  * header and footer sizes. The merged block will use the left block's address.
  *
  * @param ptr Pointer to the header of the current block to coalesce.
  * @param[out] coalesce set to 1 if coalescing occurred, unchanged otherwise.
- * @return Returns pointer to the merged block (either original or left neighbor).
+ * @return Returns pointer to the merged block (either original or left
+ * neighbor).
  *
  * @note Assumes the current block is not at the start of the heap.
  */
-static void * coalesce_left(void * ptr, char * coalesce) {
-    unsigned char * temp = (unsigned char *) ptr;
+static void *coalesce_left(void *ptr, char *coalesce) {
+    unsigned char *temp = (unsigned char *)ptr;
 
     // get the block on the left
     size_t prev_size = *(size_t *)(temp - WORD_SIZE);
-    unsigned char * previous = temp - prev_size;
+    unsigned char *previous = temp - prev_size;
 
     // check if the left is free
     if ((prev_size & 1) == 0) {
@@ -266,12 +253,13 @@ static void * coalesce_left(void * ptr, char * coalesce) {
         *coalesce = 1;
 
         // update the size of the block
-        prev_size += *(size_t *) ptr;
+        prev_size += *(size_t *)ptr;
         // update the header
         memcpy(previous, &prev_size, WORD_SIZE);
         // update the footer
         size_t offset = 1;
-        memcpy(previous + (prev_size & ~offset) - WORD_SIZE, &prev_size, WORD_SIZE);
+        memcpy(previous + (prev_size & ~offset) - WORD_SIZE, &prev_size,
+               WORD_SIZE);
 
         ptr = previous;
     }
@@ -279,9 +267,7 @@ static void * coalesce_left(void * ptr, char * coalesce) {
     return ptr;
 }
 
-
-
-void * mem_alloc(size_t size) {
+void *mem_alloc(size_t size) {
 
     static char init = 0;
     // first call to mem_alloc()
@@ -303,26 +289,24 @@ void * mem_alloc(size_t size) {
         return NULL;
     }
 
-    
     // consider RLIMIT_DATA, but first check if it's equal to RLIMIT_INFINITY
-    
 
     size_t remain_size = 0;
-    unsigned char * free_block = find_free_block(size);
+    unsigned char *free_block = find_free_block(size);
     // there are no free blocks with size bytes
     if (free_block == NULL) {
 
         // increment the program break
-        free_block = sbrk((intptr_t) size);
+        free_block = sbrk((intptr_t)size);
 
-        if (free_block == (void *) -1) {
+        if (free_block == (void *)-1) {
 
             // sbrk() failed
             errno = ENOMEM;
 
             return NULL;
         }
-        
+
         // update the end of the heap
         heap_end = sbrk(0);
 
@@ -334,7 +318,7 @@ void * mem_alloc(size_t size) {
 
         // create a block with the remaining space
         if (remain_size >= MIN_SIZE) {
-            unsigned char * remain = free_block + size;
+            unsigned char *remain = free_block + size;
             // place the header on the remaining block
             memcpy(remain, &remain_size, WORD_SIZE);
             // update the footer on the remaining block
@@ -359,8 +343,7 @@ void * mem_alloc(size_t size) {
     return free_block + WORD_SIZE;
 }
 
-
-void mem_free(void * ptr) {
+void mem_free(void *ptr) {
 
     // invalid pointer, does not belong to the heap
     if (ptr <= heap_start || ptr >= heap_end) {
@@ -371,7 +354,7 @@ void mem_free(void * ptr) {
         return;
     }
 
-    unsigned char * temp = (unsigned char *) ptr;
+    unsigned char *temp = (unsigned char *)ptr;
     // get the header of the block
     temp = temp - WORD_SIZE;
     size_t size = *(size_t *)temp;
@@ -395,18 +378,18 @@ void mem_free(void * ptr) {
 
     char coalesce = 0;
 
-    if (temp + size < (unsigned char *) heap_end) {
+    if (temp + size < (unsigned char *)heap_end) {
         temp = coalesce_right(temp, &coalesce);
-        size = *(size_t *) temp;
+        size = *(size_t *)temp;
     }
 
-    if (temp > (unsigned char *) heap_start) {
+    if (temp > (unsigned char *)heap_start) {
         if (coalesce == 1) {
             free_list_remove(temp);
         }
 
         temp = coalesce_left(temp, &coalesce);
-        size = *(size_t *) temp;
+        size = *(size_t *)temp;
     }
 
     // did not coalesce
@@ -420,15 +403,13 @@ void mem_free(void * ptr) {
         // remove block from free list
         free_list_remove(temp);
         // decrement the program break
-        sbrk(- (intptr_t) size);
+        sbrk(-(intptr_t)size);
 
         heap_end = sbrk(0);
     }
-
 }
 
-
-void * mem_resize(void * ptr, size_t size) {
+void *mem_resize(void *ptr, size_t size) {
 
     if (size == 0 && ptr != NULL) {
         mem_free(ptr);
@@ -436,7 +417,7 @@ void * mem_resize(void * ptr, size_t size) {
     }
 
     // allocate new block
-    void * block = mem_alloc(size);
+    void *block = mem_alloc(size);
     if (block != NULL && ptr != NULL) {
         // copy the contents to the new block
         memcpy(block, ptr, size);
@@ -447,11 +428,10 @@ void * mem_resize(void * ptr, size_t size) {
     return block;
 }
 
-
-void * mem_alloc_clear(size_t n, size_t size) {
+void *mem_alloc_clear(size_t n, size_t size) {
 
     // allocate a new block
-    void * block = mem_alloc(n * size);
+    void *block = mem_alloc(n * size);
     if (block != NULL) {
         // set the memory to zero
         memset(block, 0, n * size);
@@ -460,20 +440,18 @@ void * mem_alloc_clear(size_t n, size_t size) {
     return block;
 }
 
-
-
 /**
  * @brief Shows the information of a memory block
- * 
+ *
  * @param ptr address of the memory block
  */
 static void show_block(void *ptr) {
-    unsigned char * temp = (unsigned char *) ptr;
+    unsigned char *temp = (unsigned char *)ptr;
     size_t header = *(size_t *)ptr;
     size_t offset = 1;
     size_t block_size = header & ~offset;
     size_t is_allocated = header & offset;
-    
+
     printf("\n========= Memory Block =========\n");
     printf("| Address    : %p\n", ptr);
     printf("| Status     : %s\n", is_allocated != 0 ? "Allocated" : "Free");
@@ -498,10 +476,9 @@ static void show_block(void *ptr) {
     printf("================================\n");
 }
 
-
 /**
  * @brief Shows the content of the free list
- * 
+ *
  */
 static void show_free_list(void) {
     if (free_list == NULL) {
@@ -510,13 +487,12 @@ static void show_free_list(void) {
 
     printf("\n============ FREE LIST ============\n");
 
-    unsigned char * iterator = free_list;
+    unsigned char *iterator = free_list;
     do {
         show_block(iterator);
         memcpy(&iterator, iterator + WORD_SIZE, PTR_SIZE);
-    } while (iterator != free_list);    
+    } while (iterator != free_list);
 }
-
 
 void show_heap(void) {
     if (heap_start == NULL) {
@@ -525,16 +501,17 @@ void show_heap(void) {
     }
 
     printf("\n============= HEAP =============\n");
-    
+
     printf("| START : %p\n", heap_start);
     printf("| END   : %p\n", heap_end);
-    printf("| SIZE  : %ld bytes\n", (size_t) ((unsigned char *) heap_end - (unsigned char *) heap_start));
-    
+    printf("| SIZE  : %ld bytes\n",
+           (size_t)((unsigned char *)heap_end - (unsigned char *)heap_start));
+
     printf("================================\n");
 
-    unsigned char * temp = heap_start;
+    unsigned char *temp = heap_start;
     size_t offset = 0, dist = 1;
-    
+
     while (temp != heap_end) {
         offset = *(size_t *)temp;
         show_block(temp);
@@ -542,6 +519,4 @@ void show_heap(void) {
     }
 
     show_free_list();
-
 }
-

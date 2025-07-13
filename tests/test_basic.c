@@ -6,7 +6,8 @@
 #define ROWS 100
 
 /*
-    Tests if the allocation went weel, if the pointer is valid, if the allocations don't overlap
+    Tests if the allocation went weel, if the pointer is valid, if the
+   allocations don't overlap
 */
 
 static void show_array(int array[], int N) {
@@ -25,7 +26,7 @@ void show_matrix(int **matrix) {
 
 int main(void) {
 
-    int ** matrix = mem_alloc(ROWS * sizeof(int *));
+    int **matrix = mem_alloc(ROWS * sizeof(int *));
     if (matrix == NULL)
         printf("mem_alloc() failed\n");
 
@@ -45,7 +46,7 @@ int main(void) {
 
     show_heap();
 
-    int ** another = mem_alloc(ROWS * sizeof(int *));
+    int **another = mem_alloc(ROWS * sizeof(int *));
     if (another == NULL)
         printf("mem_alloc() failed\n");
 

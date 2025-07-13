@@ -71,7 +71,7 @@ documentation:
 # formates the code
 .PHONY: fmt
 fmt:
-	@-clang-format -verbose -i $(SRC_DIR)/* $(TST_DIR)/*.c
+	@-clang-format -verbose -i $(SRC_DIR)/*.c $(SRC_DIR)/*.h $(TST_DIR)/*.c
 	@shfmt -w -i 2 -l -ci .
 
 
